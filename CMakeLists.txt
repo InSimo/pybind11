@@ -27,6 +27,7 @@ endif()
 
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST    "Build pybind11 test suite?"     ${PYBIND11_MASTER_PROJECT})
+option(PYBIND11_USE_PYGILSTATE_API "Use PyGILState API for gil management?" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/tools")
 
@@ -101,7 +102,9 @@ if(NOT (CMAKE_VERSION VERSION_LESS 3.0))  # CMake >= 3.0
                                                 $<BUILD_INTERFACE:${PYTHON_INCLUDE_DIRS}>
                                                 $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
   target_compile_options(pybind11 INTERFACE $<BUILD_INTERFACE:${PYBIND11_CPP_STANDARD}>)
-
+  if( PYBIND11_USE_PYGILSTATE_API )
+    target_compile_definitions(pybind11 INTERFACE PYBIND11_USE_PYGILSTATE_API)
+  endif()
   add_library(module INTERFACE)
   add_library(pybind11::module ALIAS module)
   if(NOT MSVC)

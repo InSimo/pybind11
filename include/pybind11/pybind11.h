@@ -1866,8 +1866,22 @@ void print(Args &&...args) {
     detail::print(c.args(), c.kwargs());
 }
 
-#if defined(WITH_THREAD) && !defined(PYPY_VERSION)
+#if defined(PYPY_VERSION)
+class gil_scoped_acquire {
+    PyGILState_STATE state;
+public:
+    gil_scoped_acquire() { state = PyGILState_Ensure(); }
+    ~gil_scoped_acquire() { PyGILState_Release(state); }
+};
 
+class gil_scoped_release {
+    PyThreadState *state;
+public:
+    gil_scoped_release() { state = PyEval_SaveThread(); }
+    ~gil_scoped_release() { PyEval_RestoreThread(state); }
+};
+#else
+#if defined(WITH_THREAD) && !defined(PYBIND11_USE_PYGILSTATE_API)
 /* The functions below essentially reproduce the PyGILState_* API using a RAII
  * pattern, but there are a few important differences:
  *
@@ -1992,7 +2006,7 @@ private:
     PyThreadState *tstate;
     bool disassoc;
 };
-#elif defined(PYPY_VERSION)
+#elif defined(PYBIND11_USE_PYGILSTATE_API)
 class gil_scoped_acquire {
     PyGILState_STATE state;
 public:
@@ -2009,6 +2023,8 @@ public:
 #else
 class gil_scoped_acquire { };
 class gil_scoped_release { };
+#endif
+
 #endif
 
 error_already_set::~error_already_set() {
